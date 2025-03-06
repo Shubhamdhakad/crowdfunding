@@ -24,14 +24,14 @@ contract Crowdfunding {
 
     function createCampaign(string memory _title, string memory _description, uint256 _goal) public
     {
-        require(_goal>0,"Goal must be greater than 0");
+        // require(_goal>0,"Goal must be greater than 0");
         campaigns.push(Campaign(msg.sender,_title,_description,_goal,0,false));
         emit CampaignCreated(campaigns.length-1,msg.sender,_title,_goal);
     }
     function fund(uint256 _campaignId) public payable {
         require(_campaignId>=0 && _campaignId<campaigns.length,"Invalid campaign");
         Campaign storage campaign = campaigns[_campaignId];
-        require(msg.value>0,"Amount must be greater than 0");
+        // require(msg.value>0,"Amount must be greater than 0");
         require(!campaign.completed,"Campaign already completed");
         campaign.amountRaised += msg.value;
         emit Funded(_campaignId,msg.sender,msg.value);
@@ -40,9 +40,12 @@ contract Crowdfunding {
     function withdraw(uint256 _campaignId) payable public {
         require(_campaignId>=0 && _campaignId<campaigns.length,"Invalid campaign");
         Campaign storage campaign = campaigns[_campaignId];
+        require(campaign.amountRaised>=campaign.goal,"Goal not met");
         require(msg.sender==campaign.creator,"Only the creator can withdraw");
-        require(campaign.amountRaised>=campaign.goal,"Campaign goal not met");
         require(!campaign.completed,"Campaign already completed");
+        uint256 contractBalance = address(this).balance;
+    require(contractBalance >= campaign.amountRaised, "Insufficient contract balance");
+
         campaign.completed = true;
         payable(campaign.creator).transfer(campaign.amountRaised);
         emit Withdrawn(_campaignId,campaign.creator,campaign.amountRaised);

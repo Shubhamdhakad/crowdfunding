@@ -1,0 +1,25 @@
+  <div>
+    {campaigns.length===0?(
+      <div className='flex text-red-700 justify-center'>
+      <p>No campaigns . create one</p>
+      </div>)
+  :
+  (
+    campaigns.map((campaign,index)=>(
+      <div key={index}>
+        <h3>{campaign.title}</h3>
+        <p>{campaign.description}</p>
+        <p>Goal:{campaign.goal}</p>
+        <p>Balance:{campaign.balance}</p>
+        <p>Address:{campaign.address}</p>
+        {!campaign.completed &&(
+          <div>
+            <input type="text" placeholder='Amount(ETH)'  id={`fundAmount ${index}`}/>
+            <button onClick={()=>fundCampaign(index,document.getElementById(`fundAmount${index}`).value)}>Fund</button>
+          </div>
+        )
+      }
+        </div>
+    ))
+  )}
+  </div>

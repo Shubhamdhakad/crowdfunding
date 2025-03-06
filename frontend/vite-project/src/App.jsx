@@ -1,25 +1,57 @@
 import { useState,useEffect } from 'react'
 import { ethers } from 'ethers'
 import  crowdfundingABI from "./abi/crowdfundingABI.json";
+import { Navbar } from './component/Navbar';
+import CreateCampaign from './component/Createcamp';
+import CampaignCard from './component/Campaigncard';
+import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import { CampaignPage } from './pages/CampaignPage';
 
-const CONTRACT_ADDRESS ="0xbca9e141bca2d349f3f5cf979b7092d76abda0da";
+// import { LoadCampaign } from './component/LoadCampaign';
+
+const CONTRACT_ADDRESS ="0xe0e9cb2ea08a2ab99ec2e6a27d34545c967774c2"
 
 function App() {
   const [account , setAccount] = useState(null);
   const [campaigns,setCampaigns]=useState([]);
   const [contract, setContract] = useState(null);
   const [newCampaign,setNewCampaign]=useState({title:"",description:"",goal:0});
+  const [balance, setBalance] = useState("0");
+  const [ensName,setEnsName]=useState(null);
 
-  useEffect(()=>{
-    if(window.ethereum){
-    connectWallet(); 
-    window.ethereum.on("chainChanged", (chainId) => {
-      console.log("Network changed:", chainId);
-      window.location.reload(); // Refresh on network change
-    });   
+  useEffect(() => {
+    if (window.ethereum) {
+      connectWallet();
+
+      // Listen for account changes
+      window.ethereum.on("accountsChanged", (accounts) => {
+        if (accounts.length > 0) {
+          setAccount(accounts[0]);
+          fetchBalance(accounts[0]); // Update account
+          connectWallet(); // Reconnect with new account
+        } else {
+          setAccount(null);
+          setBalance("0");
+          setEnsName("no ens available");
+        }
+      });
+
+      // Listen for network changes
+      window.ethereum.on("chainChanged", () => {
+        window.location.reload(); // Reload on network change
+      });
     }
 
-  },[]);
+    return () => {
+      if (window.ethereum) {
+        window.ethereum.removeListener("accountsChanged", connectWallet);
+        window.ethereum.removeListener("chainChanged", () =>
+          window.location.reload()
+        );
+      }
+    };
+  }, []);
+
   const connectWallet=async()=>
   {
     if(window.ethereum)
@@ -28,7 +60,9 @@ function App() {
         const provider =new ethers.BrowserProvider(window.ethereum);
         const signer=await provider.getSigner();
         const address=await signer.getAddress(); 
+        console.log(address);
         setAccount(address);
+        fetchBalance(address);
 
         const crowdfundingContract=new ethers.Contract(CONTRACT_ADDRESS,crowdfundingABI,signer);
         setContract(crowdfundingContract);
@@ -43,6 +77,22 @@ function App() {
     else{
       alert("metamask not detected");
     }
+  };
+  const fetchBalance=async(address)=>
+  {
+    try{
+      const provider =new ethers.BrowserProvider(window.ethereum);
+      const balance=await provider.getBalance(address);
+      console.log(ensName);
+      setBalance(ethers.formatEther(balance));
+      const name=await provider.lookupAddress(address);
+            setEnsName(name);
+
+    }
+catch(error)
+{
+  console.log("Error fetching balance or ENS name:",error);
+}
   };
   // const contract=crowdfundingContract;
   const loadCampaigns = async (contract) => {
@@ -63,7 +113,7 @@ function App() {
   };
   
 
-    const createCampaign=async()=>{
+    const createCampaign=async(newCampaign)=>{
       if(!contract) return;
       const goalInWei=ethers.parseEther(newCampaign.goal);
       console.log(goalInWei);
@@ -81,83 +131,79 @@ function App() {
 
       const fundCampaign=async(campaignId,amount)=>
       {
-        if(!contract) return ;
-        const amountInWei=ethers.parseEther(amount);
+    
+        if(!contract){
+          console.log("Contract not found");
+          return;
+        } 
         try{
-          const tx=await contract.fundCampaign(campaignId,amountInWei);
+          console.log(campaignId);
+          const amountInWei=ethers.parseEther(amount);
+          const tx=await contract.fund(campaignId,{value:amountInWei});
           await tx.wait();
           loadCampaigns(contract);
+          console.log(`Campaign ${campaignId} funded successfully wirh ${amount} ETH`);
           }
           catch(error)
           {
             console.log("error",error);
             }
             };
+
+        const withdrawFunds=async(campaignId)=>
+        {
+          if(!contract||!account)
+          {
+            console.log("contract or account not found in withdraw");
+            return;
+          }
+          try{
+            const campaign=campaigns[campaignId];
+            if(campaign.creator.toLowerCase()!==account.toLowerCase())
+            {
+              alert("only the campaign creator can withdraw funds");
+              return;
+            }
+            const tx=await contract.withdraw(campaignId);
+            await tx.wait();
+            loadCampaigns(contract);
+            console.log(`Campaign ${campaignId} withdraw successfully`);
+          }
+          catch(error)
+          {
+            console.error("Withdrawal error:",error);
+          }
+        }
+        const approveMilestone = async (campaignId, milestoneIndex) => {
+          const contract = await ethers.getEthereumContract();
+          if (!contract) return;
+        
+          try {
+            const tx = await contract.approveMilestone(campaignId, milestoneIndex);
+            await tx.wait();
+            alert("Milestone approved!");
+          } catch (error) {
+            console.error("Error approving milestone:", error);
+          }
+        };
+        
+        ;
     
   return (
+    <Router>
    <div>
-    <h1>Blockchain crowdFunding</h1>
-    {!account?(
-      <button onClick={connectWallet}>Connect Wallet</button>
-    ):(
-        <div>
-      <p>Connnected:{account}</p>
-      </div>
-    )}
+    <div className='w-[210vh] border border-red-600'><Navbar account={account} connectWallet={connectWallet} balance={balance}/></div>
+   <Routes>
     {/*create cmpaign*/}
-    <div>
-      <h2>create a campaign</h2>
-      <input type="text" placeholder='title' value={newCampaign.title} onChange={(e)=>setNewCampaign({...newCampaign,title:e.target.value})} />
-      <input type="text" placeholder='description' value={newCampaign.description} onChange={(
-        e)=>setNewCampaign({...newCampaign,description:e.target.value})} />
-        <input type="number" placeholder='goal' value={newCampaign.goal} onChange={(
-          e)=>setNewCampaign({...newCampaign,goal:e.target.value})} />
-          <button onClick={createCampaign}>Create Campaign</button>
-
-    </div>
-    <h2>Active Campaigns</h2>
-  
-    <div>
-      {campaigns.length===0?(
-        <p>No campaigns . create one</p>
-      )
-    :
-    (
-      campaigns.map((campaign,index)=>(
-        <div key={index}>
-          <h3>{campaign.title}</h3>
-          <p>{campaign.description}</p>
-          <p>Goal:{campaign.goal}</p>
-          <p>Balance:{campaign.balance}</p>
-          <p>Address:{campaign.address}</p>
-          {!campaign.completed &&(
-            <div>
-              <input type="text" placeholder='Amount(ETH)'  id={`fundAmount ${index}`}/>
-              <button onClick={()=>fundCampaign(index,document.getElementById(`fundAmount${index}`).value)}>Fund</button>
-            </div>
-          )
-          }
-          </div>
-      ))
-    )}
-    </div>
-    <div>
-    {campaigns.length===0?(
-      <p>No campaigns</p>
-    ):
-    (
-      campaigns.map((campaign,index)=>
-      (
- <div key={index}>
-  <p>{campaign.name}</p>
-  <p>Goal:{campaign.goal} ETH</p>
-  <button>fund</button>
-</div>
-      ))
-    )
-    }
-    </div>
+    <Route path='/' element={
+      <div>
+      {account?<CreateCampaign createCampaign={createCampaign}/>:<p>connect wallet to Create Campaign</p>}
+      </div>
+    }/>
+   <Route path='/campaigns' element={<CampaignPage campaigns={campaigns} fundCampaign={fundCampaign} withdrawFunds={withdrawFunds}/>}/>
+  </Routes>
    </div>
+   </Router>
   );
 }
 
