@@ -8,7 +8,7 @@ const CreateCampaign = ({ createCampaign }) => {
   });
 
   return (
-    <div className="max-w-md mx-auto bg-white shadow-lg rounded-2xl p-6 mt-8 mr-0">
+    <div className="max-w-md mx-auto bg-white shadow-lg rounded-2xl p-6">
       <h2 className="text-2xl font-bold text-gray-800 mb-4 text-center">
         Create a Campaign
       </h2>

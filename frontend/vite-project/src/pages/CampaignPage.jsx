@@ -1,7 +1,7 @@
 
 import CampaignCard from '../component/Campaigncard'
 
-export const CampaignPage = ({campaigns,fundCampaign,withdrawFunds,account}) => {
+export const CampaignPage = ({campaigns,fundCampaign,withdrawFunds,account,Refund}) => {
   return (
     <div className="p-6">
     <h1 className="text-3xl font-bold text-center mb-6">Active Campaigns</h1>
@@ -10,7 +10,7 @@ export const CampaignPage = ({campaigns,fundCampaign,withdrawFunds,account}) => 
         <p className="text-red-500 text-center">No campaigns available. Create one!</p>
       ) : (
         campaigns.map((campaign, index) => (
-          <CampaignCard key={index} campaign={campaign} index={index} fundCampaign={fundCampaign} withdrawFunds={withdrawFunds} account={account} />
+          <CampaignCard key={index} campaign={campaign} index={index} fundCampaign={fundCampaign} withdrawFunds={withdrawFunds} account={account} Refund={Refund}/>
         ))
       )}
     </div>
