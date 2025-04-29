@@ -8,7 +8,7 @@ import { CampaignPage } from "./pages/CampaignPage";
 // import { Withdraw } from "./component/Withdraw";
 import { SearchBar } from "./component/SearchBar";
 
-const CONTRACT_ADDRESS = "0x8576e2bac958d62e2b137cc4e792470a9efe842a";
+const CONTRACT_ADDRESS = "0xbc04d5292d14968598359b841f665b5e59027cc2";
 
 function App() {
   const [account, setAccount] = useState(null);
@@ -72,10 +72,11 @@ function App() {
     try {
       const provider = new ethers.BrowserProvider(window.ethereum);
       const balance = await provider.getBalance(address);
-      const name = await provider.lookupAddress(address);
-       const bal=ethers.formatEther(balance);
+      // const name = await provider.lookupAddress(address);
+       const bal=ethers.formatUnits(balance,18);
+       console.log(bal);
       setBalance(Math.round(bal * 100000) / 100000);
-      setEnsName(name);
+      // setEnsName(name);
     } catch (error) {
       console.log("Error fetching balance or ENS name:", error);
     }
